@@ -88,17 +88,13 @@ export default async function handler(req, res) {
     // =========================
 
     // 1. FIRST PRIORITY: OG IMAGE
-    let images = [];
-
-// 🔥 1. PRIORITY: PRODUCT MAIN IMAGE
-let mainImage =
+    let mainImage =
   $("meta[property='og:image']").attr("content") ||
   $(".wp-post-image").attr("src") ||
   $(".product__media img").first().attr("src");
 
 if (mainImage) images.push(mainImage);
 
-// 🔥 2. PRODUCT GALLERY ONLY
 $("[class*='product'] img, [class*='gallery'] img, .woocommerce-product-gallery img").each((i, el) => {
 
   let src =
@@ -110,7 +106,6 @@ $("[class*='product'] img, [class*='gallery'] img, .woocommerce-product-gallery 
 
   if (src.startsWith("//")) src = "https:" + src;
 
-  // ❌ FILTER BAD IMAGES
   const block = [
     "logo",
     "icon",
@@ -125,7 +120,6 @@ $("[class*='product'] img, [class*='gallery'] img, .woocommerce-product-gallery 
 
   if (block.some(b => src.toLowerCase().includes(b))) return;
 
-  // ❌ skip small images
   if ($(el).attr("width") && parseInt($(el).attr("width")) < 150) return;
 
   images.push(src);
