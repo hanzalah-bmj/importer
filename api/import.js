@@ -57,21 +57,8 @@ export default async function handler(req, res) {
     // =========================
     // 🟢 PRICE
     // =========================
-    let priceText =
-  $(".price ins .amount").first().text().trim() ||
-  $(".price .amount").first().text().trim() ||
-  $("[class*=price]").first().text().trim() ||
-  "";
-
-price = priceText
-  .replace(/\n/g, " ")
-  .replace(/\s+/g, " ")
-  .replace(/Rs\.?/gi, "Rs ")
-  .trim();
-
-// ❌ remove extra junk words
-price = price.split(" ").slice(0, 2).join(" ");
-
+    price = $(".price").first().text().trim() || $("[class*=price]").first().text().trim();
+    
     // =========================
     // 🟢 DESCRIPTION (FIXED)
     // =========================
