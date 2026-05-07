@@ -12,16 +12,40 @@ export default async function handler(req, res) {
     const { data } = await axios.get(url);
     const $ = cheerio.load(data);
 
-    const title = $("title").text();
+    // TITLE
+    const title = $("h1").first().text().trim();
+
+    // PRICE (Shopify common selectors)
+    let price =
+      $(".price").first().text().trim() ||
+      $("[class*=price]").first().text().trim();
+
+    // DESCRIPTION
+    const description =
+      $(".product-description").text().trim() ||
+      $("#description").text().trim();
+
+    // IMAGES
+    let images = [];
+    $("img").each((i, el) => {
+      const src = $(el).attr("src");
+      if (src && src.includes("cdn")) {
+        images.push(src);
+      }
+    });
 
     return res.status(200).json({
       success: true,
-      title: title
+      title,
+      price,
+      description,
+      images
     });
 
   } catch (err) {
     return res.status(500).json({
-      error: "Scraping failed"
+      error: "Scraping failed",
+      details: err.message
     });
   }
 }
