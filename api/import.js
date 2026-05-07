@@ -2,38 +2,100 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 
 export default async function handler(req, res) {
+
+  // 🔥 CORS FIX
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
   const url = req.query.url;
 
   if (!url) {
-    return res.status(400).json({ error: "URL missing" });
+    return res.status(400).json({
+      success: false,
+      error: "URL is required"
+    });
   }
 
   try {
-    const { data } = await axios.get(url);
+
+    let title = "";
+    let price = "";
+    let description = "";
+    let images = [];
+
+    // =========================
+    // 🔵 FETCH HTML
+    // =========================
+    const { data } = await axios.get(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0"
+      },
+      timeout: 15000
+    });
+
     const $ = cheerio.load(data);
 
-    // TITLE
-    const title = $("h1").first().text().trim();
+    // =========================
+    // 🟢 TITLE
+    // =========================
+    title =
+      $("h1").first().text().trim() ||
+      $("title").text().trim();
 
-    // PRICE (Shopify common selectors)
-    let price =
+    // =========================
+    // 🟢 PRICE
+    // =========================
+    price =
       $(".price").first().text().trim() ||
       $("[class*=price]").first().text().trim();
 
-    // DESCRIPTION
-    const description =
+    // =========================
+    // 🟢 DESCRIPTION
+    // =========================
+    description =
       $(".product-description").text().trim() ||
-      $("#description").text().trim();
+      $("#description").text().trim() ||
+      $("p").first().text().trim();
 
-    // IMAGES
-    let images = [];
+    // =========================
+    // 🟢 IMAGES
+    // =========================
     $("img").each((i, el) => {
-      const src = $(el).attr("src");
-      if (src && src.includes("cdn")) {
-        images.push(src);
+      let src = $(el).attr("src");
+
+      if (src) {
+        if (src.startsWith("//")) {
+          src = "https:" + src;
+        }
+
+        if (src.startsWith("http")) {
+          images.push(src);
+        }
       }
     });
 
+    images = [...new Set(images)].slice(0, 8);
+
+    // =========================
+    // 🔴 SHOPIFY FIX (optional detection)
+    // =========================
+    if (data.includes("Shopify")) {
+      try {
+        const jsonMatch = data.match(/"price":(\d+)/);
+        if (jsonMatch) {
+          price = (jsonMatch[1] / 100).toString();
+        }
+      } catch (e) {}
+    }
+
+    // =========================
+    // 🔥 RESPONSE
+    // =========================
     return res.status(200).json({
       success: true,
       title,
@@ -42,10 +104,10 @@ export default async function handler(req, res) {
       images
     });
 
-  } catch (err) {
+  } catch (error) {
     return res.status(500).json({
-      error: "Scraping failed",
-      details: err.message
+      success: false,
+      error: error.message
     });
   }
 }
