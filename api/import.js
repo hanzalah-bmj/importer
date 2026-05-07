@@ -12,24 +12,36 @@ export default async function handler(req, res) {
     const { data } = await axios.get(url);
     const $ = cheerio.load(data);
 
-    // TITLE
-    const title = $("h1").first().text().trim();
-
-    // PRICE (Shopify common selectors)
-    let price =
-      $(".price").first().text().trim() ||
-      $("[class*=price]").first().text().trim();
-
-    // DESCRIPTION
-    const description =
-      $(".product-description").text().trim() ||
-      $("#description").text().trim();
-
-    // IMAGES
+    let title = "";
+    let price = "";
+    let description = "";
     let images = [];
+
+    // Shopify detect
+    if ($("meta[property='og:type']").attr("content") === "product") {
+      title = $("meta[property='og:title']").attr("content") || $("title").text();
+      description = $("meta[property='og:description']").attr("content") || "";
+      images.push($("meta[property='og:image']").attr("content"));
+
+      // price (Shopify JSON)
+      const scripts = $("script");
+      scripts.each((i, el) => {
+        const text = $(el).html();
+        if (text && text.includes("ShopifyAnalytics")) {
+          const match = text.match(/"price":"(\d+)"/);
+          if (match) price = match[1] / 100;
+        }
+      });
+    }
+
+    // fallback (generic / WooCommerce)
+    if (!title) title = $("h1").first().text().trim();
+    if (!price) price = $("[class*=price]").first().text().trim();
+    if (!description) description = $("p").text().slice(0, 500);
+
     $("img").each((i, el) => {
       const src = $(el).attr("src");
-      if (src && src.includes("cdn")) {
+      if (src && src.includes("http")) {
         images.push(src);
       }
     });
@@ -39,7 +51,7 @@ export default async function handler(req, res) {
       title,
       price,
       description,
-      images
+      images: [...new Set(images)].slice(0, 5)
     });
 
   } catch (err) {
