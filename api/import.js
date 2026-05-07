@@ -58,7 +58,7 @@ export default async function handler(req, res) {
     // 🟢 PRICE
     // =========================
     price = $(".price").first().text().trim() || $("[class*=price]").first().text().trim();
-    
+
     // =========================
     // 🟢 DESCRIPTION (FIXED)
     // =========================
@@ -88,41 +88,50 @@ export default async function handler(req, res) {
     // =========================
 
     // 1. FIRST PRIORITY: OG IMAGE
-    let ogImage = $("meta[property='og:image']").attr("content");
-    if (ogImage) images.push(ogImage);
+    let images = [];
 
-    $("img").each((i, el) => {
+// 🔥 1. PRIORITY: PRODUCT MAIN IMAGE
+let mainImage =
+  $("meta[property='og:image']").attr("content") ||
+  $(".wp-post-image").attr("src") ||
+  $(".product__media img").first().attr("src");
 
-      let src =
-        $(el).attr("data-src") ||
-        $(el).attr("data-original") ||
-        $(el).attr("src");
+if (mainImage) images.push(mainImage);
 
-      if (!src) return;
+// 🔥 2. PRODUCT GALLERY ONLY
+$("[class*='product'] img, [class*='gallery'] img, .woocommerce-product-gallery img").each((i, el) => {
 
-      if (src.startsWith("//")) src = "https:" + src;
+  let src =
+    $(el).attr("data-src") ||
+    $(el).attr("data-original") ||
+    $(el).attr("src");
 
-      // ❌ FILTER LOGOS / ICONS / NON PRODUCT
-      const block = [
-        "logo",
-        "icon",
-        "sprite",
-        "avatar",
-        "payment",
-        "placeholder",
-        "svg"
-      ];
+  if (!src) return;
 
-      if (block.some(b => src.toLowerCase().includes(b))) return;
+  if (src.startsWith("//")) src = "https:" + src;
 
-      // ❌ skip small images
-      const w = parseInt($(el).attr("width") || 0);
-      if (w && w < 150) return;
+  // ❌ FILTER BAD IMAGES
+  const block = [
+    "logo",
+    "icon",
+    "banner",
+    "home.png",
+    "fragrances",
+    "gadgets",
+    "mirrors",
+    "led-lighting",
+    "sprite"
+  ];
 
-      images.push(src);
-    });
+  if (block.some(b => src.toLowerCase().includes(b))) return;
 
-    images = [...new Set(images)].slice(0, 6);
+  // ❌ skip small images
+  if ($(el).attr("width") && parseInt($(el).attr("width")) < 150) return;
+
+  images.push(src);
+});
+
+images = [...new Set(images)].slice(0, 6);
 
     // =========================
     // 🔥 RESPONSE
