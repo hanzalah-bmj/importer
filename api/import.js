@@ -2,6 +2,17 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 
 export default async function handler(req, res) {
+
+  // 🔥 CORS HEADERS (MUST BE FIRST)
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  // 🔥 OPTIONS request handle (VERY IMPORTANT)
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
   const url = req.query.url;
 
   if (!url) {
@@ -9,39 +20,22 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { data } = await axios.get(url);
+    const { data } = await axios.get(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0"
+      }
+    });
+
     const $ = cheerio.load(data);
 
-    let title = "";
-    let price = "";
-    let description = "";
+    const title = $("h1").first().text().trim();
+
+    let price = $(".price").first().text().trim();
+
     let images = [];
-
-    // Shopify detect
-    if ($("meta[property='og:type']").attr("content") === "product") {
-      title = $("meta[property='og:title']").attr("content") || $("title").text();
-      description = $("meta[property='og:description']").attr("content") || "";
-      images.push($("meta[property='og:image']").attr("content"));
-
-      // price (Shopify JSON)
-      const scripts = $("script");
-      scripts.each((i, el) => {
-        const text = $(el).html();
-        if (text && text.includes("ShopifyAnalytics")) {
-          const match = text.match(/"price":"(\d+)"/);
-          if (match) price = match[1] / 100;
-        }
-      });
-    }
-
-    // fallback (generic / WooCommerce)
-    if (!title) title = $("h1").first().text().trim();
-    if (!price) price = $("[class*=price]").first().text().trim();
-    if (!description) description = $("p").text().slice(0, 500);
-
     $("img").each((i, el) => {
       const src = $(el).attr("src");
-      if (src && src.includes("http")) {
+      if (src && src.startsWith("http")) {
         images.push(src);
       }
     });
@@ -50,14 +44,13 @@ export default async function handler(req, res) {
       success: true,
       title,
       price,
-      description,
       images: [...new Set(images)].slice(0, 5)
     });
 
   } catch (err) {
     return res.status(500).json({
-      error: "Scraping failed",
-      details: err.message
+      success: false,
+      error: err.message
     });
   }
 }
