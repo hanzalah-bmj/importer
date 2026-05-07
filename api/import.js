@@ -38,18 +38,12 @@ export default async function handler(req, res) {
     let description = "";
     let images = [];
 
-    // =========================
-    // 🔵 FETCH HTML
-    // =========================
-const { data } = await axios.get(url, {
-  headers: {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-    "Accept": "text/html,application/xhtml+xml",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Referer": "https://www.google.com/"
-  },
-  timeout: 20000
-});
+    const { data } = await axios.get(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0"
+      },
+      timeout: 20000
+    });
 
     const $ = cheerio.load(data);
 
@@ -68,43 +62,69 @@ const { data } = await axios.get(url, {
       $("[class*=price]").first().text().trim();
 
     // =========================
-    // 🟢 DESCRIPTION
+    // 🟢 DESCRIPTION (FIXED)
     // =========================
-    description =
+    let rawDescription =
       $(".product-description").text().trim() ||
+      $(".woocommerce-product-details__short-description").text().trim() ||
       $("#description").text().trim() ||
-      $("p").first().text().trim();
+      $("meta[name='description']").attr("content") ||
+      "";
+
+    // ❌ remove garbage text
+    const badText = [
+      "couldn't load",
+      "pickup availability",
+      "javascript",
+      "error"
+    ];
+
+    if (badText.some(t => rawDescription.toLowerCase().includes(t))) {
+      rawDescription = "";
+    }
+
+    description = rawDescription;
 
     // =========================
-    // 🟢 IMAGES
+    // 🟢 IMAGES (FIXED SMART FILTER)
     // =========================
+
+    // 1. FIRST PRIORITY: OG IMAGE
+    let ogImage = $("meta[property='og:image']").attr("content");
+    if (ogImage) images.push(ogImage);
+
     $("img").each((i, el) => {
-      let src = $(el).attr("src");
 
-      if (src) {
-        if (src.startsWith("//")) {
-          src = "https:" + src;
-        }
+      let src =
+        $(el).attr("data-src") ||
+        $(el).attr("data-original") ||
+        $(el).attr("src");
 
-        if (src.startsWith("http")) {
-          images.push(src);
-        }
-      }
+      if (!src) return;
+
+      if (src.startsWith("//")) src = "https:" + src;
+
+      // ❌ FILTER LOGOS / ICONS / NON PRODUCT
+      const block = [
+        "logo",
+        "icon",
+        "sprite",
+        "avatar",
+        "payment",
+        "placeholder",
+        "svg"
+      ];
+
+      if (block.some(b => src.toLowerCase().includes(b))) return;
+
+      // ❌ skip small images
+      const w = parseInt($(el).attr("width") || 0);
+      if (w && w < 150) return;
+
+      images.push(src);
     });
 
-    images = [...new Set(images)].slice(0, 8);
-
-    // =========================
-    // 🔴 SHOPIFY FIX (optional detection)
-    // =========================
-    if (data.includes("Shopify")) {
-      try {
-        const jsonMatch = data.match(/"price":(\d+)/);
-        if (jsonMatch) {
-          price = (jsonMatch[1] / 100).toString();
-        }
-      } catch (e) {}
-    }
+    images = [...new Set(images)].slice(0, 6);
 
     // =========================
     // 🔥 RESPONSE
