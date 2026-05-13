@@ -97,13 +97,30 @@ const cleanHTML = (html) => {
 
   const $$ = cheerio.load(html);
 
-  // ❌ remove unwanted sections
+  // ❌ REMOVE GARBAGE
   $$(".address-wrapper").remove();
   $$(".phone-wrapper").remove();
   $$(".email-wrapper").remove();
   $$("svg").remove();
+  $$("noscript").remove();
+  $$("style").remove();
+  $$("script").remove();
 
-  return $$.html().trim();
+  // ❌ remove empty tags
+  $$("*").each((i, el) => {
+    if ($$(el).text().trim() === "" && !$$(el).children().length) {
+      $$(el).remove();
+    }
+  });
+
+  // ✅ CLEAN TEXT FORMAT
+  let cleaned = $$.html();
+
+  return cleaned
+    .replace(/\n/g, "")
+    .replace(/\t/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 };
 
 let short_description = "";
@@ -135,6 +152,9 @@ if (data.includes("Shopify")) {
 if (!long_description) {
   long_description = $("meta[name='description']").attr("content") || "";
 }
+
+short_description = cleanHTML(short_description);
+long_description = cleanHTML(long_description);
 
     // =========================
     // 🟢 IMAGES (FIXED SMART FILTER)
