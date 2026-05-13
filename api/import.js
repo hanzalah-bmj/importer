@@ -175,12 +175,14 @@ images = [...new Set(images)].slice(0, 5);
     // 🔥 RESPONSE
     // =========================
     return res.status(200).json({
-      success: true,
-      title,
-      price,
-      description,
-      images
-    });
+  success: true,
+  title,
+  regular_price,
+  sale_price,
+  short_description,
+  long_description,
+  images
+});
 
   } catch (error) {
     return res.status(500).json({
