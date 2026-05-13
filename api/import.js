@@ -34,8 +34,10 @@ export default async function handler(req, res) {
   try {
 
     let title = "";
-    let price = "";
-    let description = "";
+    let regular_price = "";
+    let sale_price = "";
+    let short_description = "";
+    let long_description = "";
     let images = [];
 
     const { data } = await axios.get(url, {
@@ -55,39 +57,66 @@ export default async function handler(req, res) {
       $("title").text().trim();
 
     // =========================
-    // 🟢 PRICE
-    // =========================
-    let rawPrice =
-  $(".price .woocommerce-Price-amount bdi").first().text() ||
-  $(".price ins .woocommerce-Price-amount bdi").first().text() ||
-  $(".price").first().text() ||
-  "";
+// 🟢 PRICE (SEPARATED)
+// =========================
 
-price = rawPrice.replace(/\s+/g, " ").trim();
+// WooCommerce
+regular_price =
+  $(".price del .woocommerce-Price-amount bdi").text().trim() ||
+  $(".price .woocommerce-Price-amount bdi").first().text().trim();
+
+sale_price =
+  $(".price ins .woocommerce-Price-amount bdi").text().trim() || "";
+
+// Shopify fallback
+if (!regular_price && data.includes("Shopify")) {
+  try {
+    const priceMatch = data.match(/"price":(\d+)/);
+    if (priceMatch) {
+      regular_price = (priceMatch[1] / 100).toString();
+    }
+
+    const compareMatch = data.match(/"compare_at_price":(\d+)/);
+    if (compareMatch) {
+      sale_price = regular_price;
+      regular_price = (compareMatch[1] / 100).toString();
+    }
+  } catch (e) {}
+}
 
     // =========================
     // 🟢 DESCRIPTION (FIXED)
     // =========================
-    let rawDescription =
-      $(".product-description").text().trim() ||
-      $(".woocommerce-product-details__short-description").text().trim() ||
-      $("#description").text().trim() ||
-      $("meta[name='description']").attr("content") ||
-      "";
+    // =========================
+// 🟢 DESCRIPTION (SHORT + LONG)
+// =========================
 
-    // ❌ remove garbage text
-    const badText = [
-      "couldn't load",
-      "pickup availability",
-      "javascript",
-      "error"
-    ];
+// WooCommerce
+short_description =
+  $(".woocommerce-product-details__short-description").html() || "";
 
-    if (badText.some(t => rawDescription.toLowerCase().includes(t))) {
-      rawDescription = "";
-    }
+long_description =
+  $("#tab-description").html() ||
+  $(".woocommerce-Tabs-panel--description").html() ||
+  "";
 
-    description = rawDescription;
+// Shopify
+if (data.includes("Shopify")) {
+
+  long_description =
+    $(".product__description").html() ||
+    $(".rte").html() ||
+    "";
+
+  // Shopify me short description nahi hoti normally
+  short_description =
+    $("meta[name='description']").attr("content") || "";
+}
+
+// fallback
+if (!long_description) {
+  long_description = $("meta[name='description']").attr("content") || "";
+}
 
     // =========================
     // 🟢 IMAGES (FIXED SMART FILTER)
