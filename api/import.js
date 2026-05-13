@@ -57,7 +57,13 @@ export default async function handler(req, res) {
     // =========================
     // 🟢 PRICE
     // =========================
-    price = $(".price").first().text().trim() || $("[class*=price]").first().text().trim();
+    let rawPrice =
+  $(".price .woocommerce-Price-amount bdi").first().text() ||
+  $(".price ins .woocommerce-Price-amount bdi").first().text() ||
+  $(".price").first().text() ||
+  "";
+
+price = rawPrice.replace(/\s+/g, " ").trim();
 
     // =========================
     // 🟢 DESCRIPTION (FIXED)
