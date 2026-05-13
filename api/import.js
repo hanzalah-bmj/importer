@@ -88,44 +88,49 @@ export default async function handler(req, res) {
     // =========================
 
     // 1. FIRST PRIORITY: OG IMAGE
-    let mainImage =
-  $("meta[property='og:image']").attr("content") ||
-  $(".wp-post-image").attr("src") ||
-  $(".product__media img").first().attr("src");
+    // 🟢 PRIORITY 1: OG IMAGE (Shopify + general)
+let mainImage =
+  $("meta[property='og:image']").attr("content");
+
+// 🟢 PRIORITY 2: WooCommerce main image
+if (!mainImage) {
+  mainImage = $(".woocommerce-product-gallery__image img").attr("src");
+}
+
+// 🟢 PRIORITY 3: fallback
+if (!mainImage) {
+  mainImage = $(".wp-post-image").attr("src");
+}
 
 if (mainImage) images.push(mainImage);
 
-$("[class*='product'] img, [class*='gallery'] img, .woocommerce-product-gallery img").each((i, el) => {
+// 🟢 GALLERY IMAGES (ONLY PRODUCT)
+$(".woocommerce-product-gallery__image img").each((i, el) => {
 
-  let src =
-    $(el).attr("data-src") ||
-    $(el).attr("data-original") ||
-    $(el).attr("src");
+  let src = $(el).attr("src");
 
   if (!src) return;
 
   if (src.startsWith("//")) src = "https:" + src;
 
-  const block = [
-    "logo",
-    "icon",
-    "banner",
-    "home.png",
-    "fragrances",
-    "gadgets",
-    "mirrors",
-    "led-lighting",
-    "sprite"
-  ];
-
-  if (block.some(b => src.toLowerCase().includes(b))) return;
-
-  if ($(el).attr("width") && parseInt($(el).attr("width")) < 150) return;
+  // ❌ FILTER NON PRODUCT IMAGES
+  if (
+    src.includes("logo") ||
+    src.includes("icon") ||
+    src.includes("banner") ||
+    src.includes("category") ||
+    src.includes("home.png") ||
+    src.includes("car-care") ||
+    src.includes("interior") ||
+    src.includes("exterior") ||
+    src.includes("mobile-accessories") ||
+    src.includes("utilities")
+  ) return;
 
   images.push(src);
 });
 
-images = [...new Set(images)].slice(0, 6);
+images = [...new Set(images)].slice(0, 5);
 
     // =========================
     // 🔥 RESPONSE
