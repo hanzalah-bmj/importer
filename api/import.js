@@ -91,6 +91,20 @@ if (!regular_price && data.includes("Shopify")) {
     // =========================
 // 🟢 DESCRIPTION (SHORT + LONG)
 // =========================
+// 🧼 CLEAN FUNCTION
+const cleanHTML = (html) => {
+  if (!html) return "";
+
+  const $$ = cheerio.load(html);
+
+  // ❌ remove unwanted sections
+  $$(".address-wrapper").remove();
+  $$(".phone-wrapper").remove();
+  $$(".email-wrapper").remove();
+  $$("svg").remove();
+
+  return $$.html().trim();
+};
 
 let short_description = "";
 let long_description = "";
