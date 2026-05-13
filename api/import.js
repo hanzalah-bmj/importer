@@ -34,10 +34,8 @@ export default async function handler(req, res) {
   try {
 
     let title = "";
-    let regular_price = "";
-    let sale_price = "";
-    let short_description = "";
-    let long_description = "";
+    let price = "";
+    let description = "";
     let images = [];
 
     const { data } = await axios.get(url, {
@@ -59,6 +57,9 @@ export default async function handler(req, res) {
     // =========================
 // 🟢 PRICE (SEPARATED)
 // =========================
+
+let regular_price = "";
+let sale_price = "";
 
 // WooCommerce
 regular_price =
@@ -90,6 +91,9 @@ if (!regular_price && data.includes("Shopify")) {
     // =========================
 // 🟢 DESCRIPTION (SHORT + LONG)
 // =========================
+
+let short_description = "";
+let long_description = "";
 
 // WooCommerce
 short_description =
