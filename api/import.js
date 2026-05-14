@@ -207,7 +207,13 @@ if (mainImage) images.push(mainImage);
 // 🟢 GALLERY IMAGES (ONLY PRODUCT)
 $(".woocommerce-product-gallery__image img").each((i, el) => {
 
-  let src = $(el).attr("src");
+let src =
+  $(el).attr("src") ||
+  $(el).attr("data-src") ||
+  $(el).attr("data-large_image") ||
+  $(el).attr("data-lazy-src");
+
+  src = src.replace(/-\d+x\d+/g, "");
 
   if (!src) return;
 
