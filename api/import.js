@@ -88,40 +88,28 @@ if (data.includes("Shopify")) {
 } else {
 
   // =========================
-  // 🟢 WOOCOMMERCE
-  // =========================
+// 🟢 WOOCOMMERCE (FINAL FIX)
+// =========================
 
-  const extractPrices = (text) => {
-    if (!text) return [];
+const getPrice = (selector) => {
+  let text = $(selector).first().text().trim();
+  if (!text) return "";
 
-    const matches = text.match(/[\d,.]+/g);
-    if (!matches) return [];
+  let num = text.replace(/[^0-9.]/g, "");
+  return num ? Math.round(parseFloat(num)).toString() : "";
+};
 
-    return matches.map(p => {
-      let clean = p.replace(/,/g, "");
-      let num = parseFloat(clean);
-      return num ? Math.round(num) : null;
-    }).filter(Boolean);
-  };
+// 🎯 EXACT VALUES
+sale_price = getPrice(".price ins .woocommerce-Price-amount bdi");
+regular_price = getPrice(".price del .woocommerce-Price-amount bdi");
 
-  let fullPriceText = $(".price").text();
+// 🟡 fallback (no sale case)
+if (!sale_price) {
+  sale_price = getPrice(".price .woocommerce-Price-amount bdi");
+}
 
-  let prices = extractPrices(fullPriceText);
-
-  // filter garbage
-  prices = prices.filter(p => p > 10 && p < 1000000);
-
-  if (prices.length === 1) {
-    sale_price = prices[0].toString();
-    regular_price = prices[0].toString();
-  }
-
-  if (prices.length >= 2) {
-    let sorted = prices.sort((a, b) => b - a);
-
-    regular_price = sorted[0].toString(); // max
-    sale_price = sorted[sorted.length - 1].toString(); // min
-  }
+if (!regular_price) {
+  regular_price = sale_price;
 }
 
     // =========================
