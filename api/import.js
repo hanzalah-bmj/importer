@@ -189,6 +189,17 @@ long_description = cleanHTML(long_description);
 
     // 1. FIRST PRIORITY: OG IMAGE
     // 🟢 PRIORITY 1: OG IMAGE (Shopify + general)
+const fixImageUrl = (url) => {
+  if (!url) return "";
+
+  try {
+    // convert spaces + special chars
+    return encodeURI(url);
+  } catch (e) {
+    return url;
+  }
+};
+
 let mainImage =
   $("meta[property='og:image']").attr("content");
 
@@ -202,7 +213,7 @@ if (!mainImage) {
   mainImage = $(".wp-post-image").attr("src");
 }
 
-if (mainImage) images.push(mainImage);
+if (mainImage) images.push(fixImageUrl(mainImage));
 
 // 🟢 GALLERY IMAGES (ONLY PRODUCT)
 $(".woocommerce-product-gallery__image img").each((i, el) => {
@@ -233,7 +244,7 @@ let src =
     src.includes("utilities")
   ) return;
 
-  images.push(src);
+  images.push(fixImageUrl(src));
 });
 
 images = [...new Set(images)].slice(0, 5);
