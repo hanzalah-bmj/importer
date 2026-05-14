@@ -111,7 +111,7 @@ if (!sale_price) {
 if (!regular_price) {
   regular_price = sale_price;
 }
-
+}
     // =========================
     // 🟢 DESCRIPTION (FIXED)
     // =========================
