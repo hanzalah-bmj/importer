@@ -55,29 +55,37 @@ export default async function handler(req, res) {
       $("title").text().trim();
 
 // =========================
-// 🟢 PRICE (FIXED CLEAN)
+// 🟢 PRICE (FINAL FIXED)
 // =========================
 
 let regular_price = "";
 let sale_price = "";
 
-// 🟢 WooCommerce FIX (ONLY FIRST PRICE CLEAN)
+const formatPrice = (text) => {
+  if (!text) return "";
+
+  let cleaned = text.replace(/[^0-9.,]/g, "").replace(/,/g, "");
+  let num = parseFloat(cleaned);
+
+  return num ? Math.round(num).toString() : "";
+};
+
 let prices = [];
 
 $(".price .woocommerce-Price-amount bdi").each((i, el) => {
-  let p = $(el).text().replace(/[^\d]/g, "");
+  let p = formatPrice($(el).text());
   if (p) prices.push(p);
 });
 
 if (prices.length > 0) {
-  sale_price = prices[0]; // current price
+  sale_price = prices[0];
 }
 
 if (prices.length > 1) {
-  regular_price = prices[1]; // old price
+  regular_price = prices[1];
 }
 
-// 🟢 Shopify fallback
+// Shopify fallback
 if (!sale_price && data.includes("Shopify")) {
   try {
     const priceMatch = data.match(/"price":(\d+)/);
@@ -90,12 +98,6 @@ if (!sale_price && data.includes("Shopify")) {
       regular_price = (compareMatch[1] / 100).toString();
     }
   } catch (e) {}
-}
-
-// 🟢 FINAL FALLBACK (meta price)
-if (!sale_price) {
-  let metaPrice = $("meta[property='product:price:amount']").attr("content");
-  if (metaPrice) sale_price = metaPrice;
 }
 
     // =========================
