@@ -55,34 +55,44 @@ export default async function handler(req, res) {
       $("title").text().trim();
 
 // =========================
-// 🟢 PRICE (FINAL FIXED)
+// 🟢 PRICE (ULTRA FIXED)
 // =========================
 
 let regular_price = "";
 let sale_price = "";
 
-const formatPrice = (text) => {
-  if (!text) return "";
+const extractPrices = (text) => {
+  if (!text) return [];
 
-  let cleaned = text.replace(/[^0-9.,]/g, "").replace(/,/g, "");
-  let num = parseFloat(cleaned);
+  // match numbers like 5,000.00 OR 1000 OR 2,200
+  const matches = text.match(/[\d,.]+/g);
 
-  return num ? Math.round(num).toString() : "";
+  if (!matches) return [];
+
+  return matches.map(p => {
+    let clean = p.replace(/,/g, "");
+    let num = parseFloat(clean);
+    return num ? Math.round(num) : null;
+  }).filter(Boolean);
 };
 
-let prices = [];
+// 👉 PURE TEXT GET KARO (IMPORTANT)
+let fullPriceText = $(".price").text();
 
-$(".price .woocommerce-Price-amount bdi").each((i, el) => {
-  let p = formatPrice($(el).text());
-  if (p) prices.push(p);
-});
+// 👉 ALL PRICES ARRAY
+let prices = extractPrices(fullPriceText);
 
-if (prices.length > 0) {
-  sale_price = prices[0];
+// 👉 LOGIC
+if (prices.length === 1) {
+  sale_price = prices[0].toString();
 }
 
-if (prices.length > 1) {
-  regular_price = prices[1];
+if (prices.length >= 2) {
+  // WooCommerce usually: higher = regular, lower = sale
+  let sorted = prices.sort((a, b) => b - a);
+
+  regular_price = sorted[0].toString();
+  sale_price = sorted[sorted.length - 1].toString();
 }
 
 // Shopify fallback
