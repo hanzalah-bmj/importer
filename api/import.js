@@ -55,59 +55,73 @@ export default async function handler(req, res) {
       $("title").text().trim();
 
 // =========================
-// 🟢 PRICE (ULTRA FIXED)
+// 🟢 PRICE (FINAL PERFECT FIX)
 // =========================
 
 let regular_price = "";
 let sale_price = "";
 
-const extractPrices = (text) => {
-  if (!text) return [];
+// =========================
+// 🟣 SHOPIFY FIRST (IMPORTANT)
+// =========================
+if (data.includes("Shopify")) {
 
-  // match numbers like 5,000.00 OR 1000 OR 2,200
-  const matches = text.match(/[\d,.]+/g);
-
-  if (!matches) return [];
-
-  return matches.map(p => {
-    let clean = p.replace(/,/g, "");
-    let num = parseFloat(clean);
-    return num ? Math.round(num) : null;
-  }).filter(Boolean);
-};
-
-// 👉 PURE TEXT GET KARO (IMPORTANT)
-let fullPriceText = $(".price").text();
-
-// 👉 ALL PRICES ARRAY
-let prices = extractPrices(fullPriceText);
-
-// 👉 LOGIC
-if (prices.length === 1) {
-  sale_price = prices[0].toString();
-}
-
-if (prices.length >= 2) {
-  // WooCommerce usually: higher = regular, lower = sale
-  let sorted = prices.sort((a, b) => b - a);
-
-  regular_price = sorted[0].toString();
-  sale_price = sorted[sorted.length - 1].toString();
-}
-
-// Shopify fallback
-if (!sale_price && data.includes("Shopify")) {
   try {
     const priceMatch = data.match(/"price":(\d+)/);
+    const compareMatch = data.match(/"compare_at_price":(\d+)/);
+
     if (priceMatch) {
       sale_price = (priceMatch[1] / 100).toString();
     }
 
-    const compareMatch = data.match(/"compare_at_price":(\d+)/);
     if (compareMatch) {
       regular_price = (compareMatch[1] / 100).toString();
     }
+
+    // agar compare price nahi hai
+    if (!regular_price) {
+      regular_price = sale_price;
+    }
+
   } catch (e) {}
+
+} else {
+
+  // =========================
+  // 🟢 WOOCOMMERCE
+  // =========================
+
+  const extractPrices = (text) => {
+    if (!text) return [];
+
+    const matches = text.match(/[\d,.]+/g);
+    if (!matches) return [];
+
+    return matches.map(p => {
+      let clean = p.replace(/,/g, "");
+      let num = parseFloat(clean);
+      return num ? Math.round(num) : null;
+    }).filter(Boolean);
+  };
+
+  let fullPriceText = $(".price").text();
+
+  let prices = extractPrices(fullPriceText);
+
+  // filter garbage
+  prices = prices.filter(p => p > 10 && p < 1000000);
+
+  if (prices.length === 1) {
+    sale_price = prices[0].toString();
+    regular_price = prices[0].toString();
+  }
+
+  if (prices.length >= 2) {
+    let sorted = prices.sort((a, b) => b - a);
+
+    regular_price = sorted[0].toString(); // max
+    sale_price = sorted[sorted.length - 1].toString(); // min
+  }
 }
 
     // =========================
