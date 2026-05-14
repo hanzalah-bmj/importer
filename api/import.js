@@ -54,35 +54,48 @@ export default async function handler(req, res) {
       $("h1").first().text().trim() ||
       $("title").text().trim();
 
-    // =========================
-// 🟢 PRICE (SEPARATED)
+// =========================
+// 🟢 PRICE (FIXED CLEAN)
 // =========================
 
 let regular_price = "";
 let sale_price = "";
 
-// WooCommerce
-regular_price =
-  $(".price del .woocommerce-Price-amount bdi").text().trim() ||
-  $(".price .woocommerce-Price-amount bdi").first().text().trim();
+// 🟢 WooCommerce FIX (ONLY FIRST PRICE CLEAN)
+let prices = [];
 
-sale_price =
-  $(".price ins .woocommerce-Price-amount bdi").text().trim() || "";
+$(".price .woocommerce-Price-amount bdi").each((i, el) => {
+  let p = $(el).text().replace(/[^\d]/g, "");
+  if (p) prices.push(p);
+});
 
-// Shopify fallback
-if (!regular_price && data.includes("Shopify")) {
+if (prices.length > 0) {
+  sale_price = prices[0]; // current price
+}
+
+if (prices.length > 1) {
+  regular_price = prices[1]; // old price
+}
+
+// 🟢 Shopify fallback
+if (!sale_price && data.includes("Shopify")) {
   try {
     const priceMatch = data.match(/"price":(\d+)/);
     if (priceMatch) {
-      regular_price = (priceMatch[1] / 100).toString();
+      sale_price = (priceMatch[1] / 100).toString();
     }
 
     const compareMatch = data.match(/"compare_at_price":(\d+)/);
     if (compareMatch) {
-      sale_price = regular_price;
       regular_price = (compareMatch[1] / 100).toString();
     }
   } catch (e) {}
+}
+
+// 🟢 FINAL FALLBACK (meta price)
+if (!sale_price) {
+  let metaPrice = $("meta[property='product:price:amount']").attr("content");
+  if (metaPrice) sale_price = metaPrice;
 }
 
     // =========================
